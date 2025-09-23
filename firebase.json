@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "sippeta-e71df", 
+    "site": "sippeta", 
     "public": "public",
     "ignore": [
       "firebase.json",
