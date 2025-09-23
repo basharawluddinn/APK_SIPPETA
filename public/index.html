@@ -4,82 +4,103 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SIPPETA Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js"></script>
 </head>
-<body class="bg-light">
-  <div class="container py-4">
-    <h1 class="text-center mb-4">📊 Dashboard SIPPETA</h1>
+<body class="bg-gray-50 font-sans">
 
-    <div class="row g-4">
-      <!-- ESP32 #1 -->
-      <div class="col-md-6">
-        <div class="card shadow rounded-3">
-          <div class="card-body">
-            <h5 class="card-title">ESP32 #1</h5>
-            <p><b>Sensor Suhu:</b> <span id="suhu1">--</span> °C</p>
-            <p><b>Kelembaban:</b> <span id="hum1">--</span> %</p>
-          </div>
+  <!-- Header -->
+  <header class="bg-green-600 text-white p-4 text-center shadow-md">
+    <h1 class="text-2xl font-bold">🌱 SIPPETA</h1>
+    <p class="text-sm opacity-80">Monitoring & Kontrol Otomatis</p>
+  </header>
+
+  <main class="p-4 space-y-6 max-w-xl mx-auto">
+    <!-- Card Sensor ESP32_1 -->
+    <div class="bg-white p-5 rounded-2xl shadow-md border border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-700 mb-4">📟 Sensor Kontrol Tanah</h2>
+      
+      <div class="grid grid-cols-1 gap-4 mb-4">
+        <div class="bg-green-50 rounded-xl p-3 text-center">
+          <p class="text-sm text-gray-500">Kelembaban</p>
+          <p class="text-2xl font-bold text-green-700"><span id="kelembaban">-</span>%</p>
         </div>
       </div>
 
-      <!-- ESP32 #2 -->
-      <div class="col-md-6">
-        <div class="card shadow rounded-3">
-          <div class="card-body">
-            <h5 class="card-title">ESP32 #2</h5>
-            <p><b>Sensor Suhu:</b> <span id="suhu2">--</span> °C</p>
-            <p><b>Kelembaban:</b> <span id="hum2">--</span> %</p>
-          </div>
-        </div>
+      <div class="flex items-center justify-between bg-gray-100 rounded-xl p-3 mb-4">
+        <p class="text-gray-600">💧 Status Pompa:</p>
+        <span id="pumpStatus" class="font-bold text-red-600">OFF</span>
+      </div>
+
+      <div class="flex space-x-2">
+        <button onclick="setPump(true)" class="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg">Pompa ON</button>
+        <button onclick="setPump(false)" class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg">Pompa OFF</button>
       </div>
     </div>
-  </div>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js"></script>
+    <!-- Card Sensor ESP32_2 -->
+    <div class="bg-white p-5 rounded-2xl shadow-md border border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-700 mb-4">🌡️ Sensor Kontrol pH</h2>
+      
+      <div class="bg-purple-50 rounded-xl p-3 text-center mb-4">
+        <p class="text-sm text-gray-500">pH Tanah</p>
+        <p class="text-2xl font-bold text-purple-700"><span id="phMeter">-</span></p>
+      </div>
+
+      <p class="text-gray-600 mb-2 font-medium">🌿 Rekomendasi Tanaman:</p>
+      <ul id="tanamanList" class="list-disc pl-5 space-y-1 text-green-700 text-sm"></ul>
+    </div>
+  </main>
+
   <script>
+    // ✅ Firebase Config (ganti dengan punyamu)
     const firebaseConfig = {
       apiKey: "AIzaSyB_gT8-_gpDaSzRmAtjwHmUOfTCxfg0csU",
       authDomain: "sippeta-e71df.firebaseapp.com",
+      databaseURL: "https://sippeta-e71df-default-rtdb.firebaseio.com",
       projectId: "sippeta-e71df",
       storageBucket: "sippeta-e71df.appspot.com",
       messagingSenderId: "353746759060",
       appId: "1:353746759060:web:afbaedcbf9577720b4b381",
       measurementId: "G-XPG1YN6147"
     };
+
+    // Inisialisasi Firebase
     const app = firebase.initializeApp(firebaseConfig);
-    const analytics = firebase.analytics();
-  </script>
+    const db = firebase.database();
 
-  <!-- Fetch data dari 2 ESP32 -->
-  <script>
-    // Ganti dengan IP ESP32 kamu
-    const esp32_1 = "http://192.168.1.50"; 
-    const esp32_2 = "http://192.168.1.51"; 
+    // Listener ESP32_1
+    db.ref("esp32_1").on("value", (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      document.getElementById("kelembaban").innerText = data.kelembaban;
+      document.getElementById("pumpStatus").innerText = data.pump ? "ON" : "OFF";
+      document.getElementById("pumpStatus").className = data.pump ? "font-bold text-green-600" : "font-bold text-red-600";
+    });
 
-    async function fetchData() {
-      try {
-        // ESP32 #1
-        let res1 = await fetch(`${esp32_1}/data`);
-        let data1 = await res1.json();
-        document.getElementById("suhu1").textContent = data1.suhu.toFixed(1);
-        document.getElementById("hum1").textContent = data1.kelembaban.toFixed(1);
-
-        // ESP32 #2
-        let res2 = await fetch(`${esp32_2}/data`);
-        let data2 = await res2.json();
-        document.getElementById("suhu2").textContent = data2.suhu.toFixed(1);
-        document.getElementById("hum2").textContent = data2.kelembaban.toFixed(1);
-
-      } catch (e) {
-        console.error("Gagal ambil data:", e);
+    // Listener ESP32_2
+    db.ref("esp32_2").on("value", (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      document.getElementById("phMeter").innerText = data.ph;
+      const list = document.getElementById("tanamanList");
+      list.innerHTML = "";
+      if (data.tanaman && Array.isArray(data.tanaman)) {
+        data.tanaman.forEach(t => {
+          const li = document.createElement("li");
+          li.innerText = t;
+          list.appendChild(li);
+        });
       }
-    }
+    });
 
-    // Update setiap 5 detik
-    setInterval(fetchData, 5000);
-    fetchData();
+    // Set status pompa (ditulis ke Firebase)
+    function setPump(state) {
+      db.ref("esp32_1/pump").set(state);
+    }
   </script>
+
 </body>
 </html>
