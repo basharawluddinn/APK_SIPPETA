@@ -4,138 +4,82 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SIPPETA Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    /* Fullscreen splash */
-    #splash {
-      position: fixed;
-      inset: 0;
-      background: #16a34a;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 50;
-      color: white;
-      font-family: sans-serif;
-      transition: opacity 1s ease;
-    }
-    #splash.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-  </style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-50 font-sans">
+<body class="bg-light">
+  <div class="container py-4">
+    <h1 class="text-center mb-4">📊 Dashboard SIPPETA</h1>
 
-  <!-- Splash / Onboarding -->
-  <div id="splash">
-    <div class="animate-bounce">
-      <span class="text-6xl">🌱</span>
-    </div>
-    <h1 class="text-3xl font-bold mt-4">SIPPETA</h1>
-    <p class="mt-2 text-sm opacity-80">Selamat Datang di Aplikasi SIPPETA....</p>
-  </div>
-
-  <!-- Header -->
-  <header class="bg-green-600 text-white p-4 text-center shadow-md">
-    <h1 class="text-2xl font-bold">🌱 SIPPETA</h1>
-    <p class="text-sm opacity-80">Monitoring & Kontrol Otomatis</p>
-  </header>
-
-  <main class="p-4 space-y-6 max-w-xl mx-auto">
-    <!-- Card Sensor ESP32_1 -->
-    <div class="bg-white p-5 rounded-2xl shadow-md border border-gray-200">
-      <h2 class="text-lg font-semibold text-gray-700 mb-4">📟 Sensor Kontrol Tanah</h2>
-      
-      <div class="grid grid-cols-1 gap-4 mb-4">
-        <div class="bg-green-50 rounded-xl p-3 text-center">
-          <p class="text-sm text-gray-500">Kelembaban</p>
-          <p class="text-2xl font-bold text-green-700"><span id="kelembaban">-</span>%</p>
+    <div class="row g-4">
+      <!-- ESP32 #1 -->
+      <div class="col-md-6">
+        <div class="card shadow rounded-3">
+          <div class="card-body">
+            <h5 class="card-title">ESP32 #1</h5>
+            <p><b>Sensor Suhu:</b> <span id="suhu1">--</span> °C</p>
+            <p><b>Kelembaban:</b> <span id="hum1">--</span> %</p>
+          </div>
         </div>
       </div>
 
-      <div class="flex items-center justify-between bg-gray-100 rounded-xl p-3 mb-4">
-        <p class="text-gray-600">💧 Status Pompa:</p>
-        <span id="pumpStatus" class="font-bold text-red-600">OFF</span>
-      </div>
-
-      <div class="flex space-x-2">
-        <button onclick="setPump('on')" class="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg">Pompa ON</button>
-        <button onclick="setPump('off')" class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg">Pompa OFF</button>
+      <!-- ESP32 #2 -->
+      <div class="col-md-6">
+        <div class="card shadow rounded-3">
+          <div class="card-body">
+            <h5 class="card-title">ESP32 #2</h5>
+            <p><b>Sensor Suhu:</b> <span id="suhu2">--</span> °C</p>
+            <p><b>Kelembaban:</b> <span id="hum2">--</span> %</p>
+          </div>
+        </div>
       </div>
     </div>
+  </div>
 
-    <!-- Card Sensor ESP32_2 -->
-    <div class="bg-white p-5 rounded-2xl shadow-md border border-gray-200">
-      <h2 class="text-lg font-semibold text-gray-700 mb-4">🌡️ Sensor Kontrol pH</h2>
-      
-      <div class="bg-purple-50 rounded-xl p-3 text-center mb-4">
-        <p class="text-sm text-gray-500">pH Tanah</p>
-        <p class="text-2xl font-bold text-purple-700"><span id="phMeter">-</span></p>
-      </div>
-
-      <p class="text-gray-600 mb-2 font-medium">🌿 Rekomendasi Tanaman:</p>
-      <ul id="tanamanList" class="list-disc pl-5 space-y-1 text-green-700 text-sm"></ul>
-    </div>
-  </main>
-
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js"></script>
   <script>
-    const ESP32_1_URL = "http://172.24.102.151";
-    const ESP32_2_URL = "http://172.24.102.126";
-
-    let splashTimeout;
-
-    async function hideSplash() {
-      clearTimeout(splashTimeout);
-      document.getElementById("splash").classList.add("hidden");
-    }
-
-    async function fetchData(firstLoad = false) {
-      try {
-        // ESP32_1
-        const res1 = await fetch(`${ESP32_1_URL}/status`);
-        const data1 = await res1.json();
-        document.getElementById("kelembaban").innerText = data1.kelembaban;
-        document.getElementById("pumpStatus").innerText = data1.pump ? "ON" : "OFF";
-        document.getElementById("pumpStatus").className = data1.pump ? "font-bold text-green-600" : "font-bold text-red-600";
-
-        // ESP32_2
-        const res2 = await fetch(`${ESP32_2_URL}/status`);
-        const data2 = await res2.json();
-        document.getElementById("phMeter").innerText = data2.ph;
-        const list = document.getElementById("tanamanList");
-        list.innerHTML = "";
-        if (data2.tanaman && Array.isArray(data2.tanaman)) {
-          data2.tanaman.forEach(t => {
-            const li = document.createElement("li");
-            li.innerText = t;
-            list.appendChild(li);
-          });
-        }
-
-        if (firstLoad) hideSplash();
-      } catch (err) {
-        console.error("Error fetch:", err);
-        if (firstLoad) hideSplash();
-      }
-    }
-
-    async function setPump(state) {
-      try {
-        await fetch(`${ESP32_1_URL}/pump/${state}`);
-        fetchData();
-      } catch (err) {
-        console.error("Pompa error:", err);
-      }
-    }
-
-    window.addEventListener("load", () => {
-      splashTimeout = setTimeout(hideSplash, 4000);
-      fetchData(true);
-      setInterval(fetchData, 5000);
-    });
+    const firebaseConfig = {
+      apiKey: "AIzaSyB_gT8-_gpDaSzRmAtjwHmUOfTCxfg0csU",
+      authDomain: "sippeta-e71df.firebaseapp.com",
+      projectId: "sippeta-e71df",
+      storageBucket: "sippeta-e71df.appspot.com",
+      messagingSenderId: "353746759060",
+      appId: "1:353746759060:web:afbaedcbf9577720b4b381",
+      measurementId: "G-XPG1YN6147"
+    };
+    const app = firebase.initializeApp(firebaseConfig);
+    const analytics = firebase.analytics();
   </script>
 
+  <!-- Fetch data dari 2 ESP32 -->
+  <script>
+    // Ganti dengan IP ESP32 kamu
+    const esp32_1 = "http://192.168.1.50"; 
+    const esp32_2 = "http://192.168.1.51"; 
+
+    async function fetchData() {
+      try {
+        // ESP32 #1
+        let res1 = await fetch(`${esp32_1}/data`);
+        let data1 = await res1.json();
+        document.getElementById("suhu1").textContent = data1.suhu.toFixed(1);
+        document.getElementById("hum1").textContent = data1.kelembaban.toFixed(1);
+
+        // ESP32 #2
+        let res2 = await fetch(`${esp32_2}/data`);
+        let data2 = await res2.json();
+        document.getElementById("suhu2").textContent = data2.suhu.toFixed(1);
+        document.getElementById("hum2").textContent = data2.kelembaban.toFixed(1);
+
+      } catch (e) {
+        console.error("Gagal ambil data:", e);
+      }
+    }
+
+    // Update setiap 5 detik
+    setInterval(fetchData, 5000);
+    fetchData();
+  </script>
 </body>
 </html>
